@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!--
+       （1）自定义的realm
+       （2）securityManager
+       （3）定义ShiroFilter
+   -->
+
+    <!--自定义的realm-->
+    <bean id="myRealm" class="com.mr.realm.MyRealm">
+        <property name="credentialsMatcher" ref="credentialsMatcher"/>
+    </bean>
+    <!--securityManager-->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="realm" ref="myRealm"/>
+        <property name="cacheManager" ref="cacheManager"/>
+    </bean>
+    <!-- ShiroFilter
+       注意：id必须和web.xml中定义的 <filter-name>shiroFilter</filter-name> 一致
+    -->
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+        <!--登录的方法-->
+        <property name="loginUrl" value="/login"/>
+        <!-- 没有授权的路径  -->
+        <property name="unauthorizedUrl" value="/unauthorizedPage.jsp"/>
+        <!-- 拦截规则 -->
+        <property name="filterChainDefinitions">
+            <value>
+                /favicon.ico=anon
+
+                /logout=logout
+                <!--anon:匿名拦截器，即不需要登录即可访问；一般用于静态资源过滤；示例“/static/**=anon”-->
+
+                <!--authc:表示需要认证(登录)才能使用;示例“/**=authc”-->
+                <!--所有的请求都会被shiroFilter拦截认证-->
+                /** = authc
+
+            </value>
+        </property>
+    </bean>
+
+    <!-- 定义需要特殊处理的异常，用类名或完全路径名作为key，异常页名作为值 -->
+    <!--shiro权限异常处理-->
+    <bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+        <property name="exceptionMappings">
+            <props>
+                <prop key="org.apache.shiro.authz.UnauthorizedException">redirect:/unauthorizedPage.jsp</prop>
+            </props>
+        </property>
+    </bean>
+
+    <!--如果导入的ehcache版本在2.5.0以上,需要配置如下.-->
+    <!-- 缓存管理器开始 -->
+    <bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+        <property name="cacheManager" ref="ehCacheManager"/>
+    </bean>
+    <bean id="ehCacheManager" class ="org.springframework.cache.ehcache.EhCacheManagerFactoryBean">
+        <property name="configLocation" value="classpath:shiro-ehcache.xml" />
+        <property name="shared" value="true"></property>
+    </bean>
+    <!--加密器-->
+    <bean id="credentialsMatcher"
+          class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+        <!--使用的加密技术-->
+        <property name="hashAlgorithmName" value="md5" />
+        <!--加密的次数-->
+        <property name="hashIterations" value="1000" />
+    </bean>
+</beans>
